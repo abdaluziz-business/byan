@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum Language {
+  AR
+  EN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+/// A SaaS tenant: a business using Bayan to run its site.
+model Client {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  password           String
+  businessName       String
+  plan               Plan     @default(FREE)
+  isActive           Boolean  @default(true)
+  hashedRefreshToken String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  sites Site[]
+
+  @@map("clients")
+}
+
+/// A client's public site: theme + enabled sections + publishing state.
+model Site {
+  id          String   @id @default(uuid())
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  theme       Json
+  sections    Json
+  language    Language @default(AR)
+  domain      String?  @unique
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teamMembers     TeamMember[]
+  services        Service[]
+  testimonials    Testimonial[]
+  blogPosts       BlogPost[]
+  contactMessages ContactMessage[]
+
+  @@index([clientId])
+  @@map("sites")
+}
+
+model TeamMember {
+  id          String   @id @default(uuid())
+  siteId      String
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  nameAr      String
+  nameEn      String
+  role        String
+  bio         String?
+  image       String?
+  socialLinks Json?
+  isOwner     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  services  Service[]
+  blogPosts BlogPost[]
+
+  @@index([siteId])
+  @@map("team_members")
+}
+
+model Service {
+  id               String      @id @default(uuid())
+  siteId           String
+  site             Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  nameAr           String
+  nameEn           String
+  description      String?
+  price            Decimal     @db.Decimal(10, 2)
+  duration         Int
+  isOnline         Boolean     @default(false)
+  isInPerson       Boolean     @default(true)
+  assignedMemberId String?
+  assignedMember   TeamMember? @relation(fields: [assignedMemberId], references: [id], onDelete: SetNull)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  bookings Booking[]
+
+  @@index([siteId])
+  @@map("services")
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  serviceId     String
+  service       Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  clientName    String
+  clientEmail   String
+  clientPhone   String
+  date          DateTime
+  time          String
+  status        BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  payments Payment[]
+
+  @@index([serviceId])
+  @@map("bookings")
+}
+
+model Testimonial {
+  id         String   @id @default(uuid())
+  siteId     String
+  site       Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  authorName String
+  rating     Int
+  content    String
+  avatar     String?
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([siteId])
+  @@map("testimonials")
+}
+
+model BlogPost {
+  id          String      @id @default(uuid())
+  siteId      String
+  site        Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  titleAr     String
+  titleEn     String
+  contentAr   String
+  contentEn   String
+  coverImage  String?
+  publishedAt DateTime?
+  authorId    String?
+  author      TeamMember? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([siteId])
+  @@map("blog_posts")
+}
+
+model ContactMessage {
+  id         String   @id @default(uuid())
+  siteId     String
+  site       Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name       String
+  email      String
+  phone      String?
+  message    String
+  attachment String?
+  createdAt  DateTime @default(now())
+
+  @@index([siteId])
+  @@map("contact_messages")
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  bookingId String
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount    Decimal       @db.Decimal(10, 2)
+  currency  String        @default("SAR")
+  status    PaymentStatus @default(PENDING)
+  moyasarId String?
+  createdAt DateTime      @default(now())
+
+  @@index([bookingId])
+  @@map("payments")
+}

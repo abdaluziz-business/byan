@@ -1,0 +1,1 @@
+export { AboutDefault } from './AboutDefault';

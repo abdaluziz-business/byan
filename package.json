@@ -1,0 +1,29 @@
+{
+  "name": "bayan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bayan (بيان) by Tabayn — multi-tenant SaaS platform for building business websites",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n shared,backend,frontend -c blue,green,magenta \"npm run dev --workspace=@bayan/shared\" \"npm run start:dev --workspace=@bayan/backend\" \"npm run dev --workspace=@bayan/frontend\"",
+    "build": "npm run build --workspace=@bayan/shared && npm run build --workspace=@bayan/backend && npm run build --workspace=@bayan/frontend",
+    "build:shared": "npm run build --workspace=@bayan/shared",
+    "build:backend": "npm run build --workspace=@bayan/backend",
+    "build:frontend": "npm run build --workspace=@bayan/frontend",
+    "lint": "npm run lint --workspace=@bayan/backend && npm run lint --workspace=@bayan/frontend",
+    "test": "npm run test --workspace=@bayan/backend",
+    "prisma:generate": "npm run prisma:generate --workspace=@bayan/backend",
+    "prisma:migrate": "npm run prisma:migrate --workspace=@bayan/backend",
+    "prisma:studio": "npm run prisma:studio --workspace=@bayan/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
